@@ -102,3 +102,102 @@ skin_df_balanced
 #guardar la tabla en formato csv
 ruta = '/content/drive/MyDrive/Analitica III/SALUD/tablaimgg.csv'
 skin_df_balanced.to_csv(ruta , index=False)
+
+
+
+--------------------------------------------------------------------------------
+
+#conectar con google
+from google.colab import drive
+drive.mount('/content/drive')
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import os
+from glob import glob
+import seaborn as sns
+from PIL import Image
+
+np.random.seed(42)
+from sklearn.metrics import confusion_matrix
+
+import keras
+from keras.utils.np_utils import to_categorical # used for converting labels to one-hot-encoding
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D, BatchNormalization
+from sklearn.model_selection import train_test_split
+from scipy import stats
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.optimizers import RMSprop
+from keras.optimizers import RMSprop
+
+
+########Paquetes para NN #########
+import tensorflow as tf
+from sklearn import metrics ### para analizar modelo
+from sklearn.ensemble import RandomForestClassifier  ### para analizar modelo
+
+#PREPROCESAMIENTO
+
+skin_df_balanced = pd.read_csv('/content/drive/MyDrive/Analitica III/SALUD/tablaimgg.csv')
+
+skin_df_balanced
+
+SIZE=32
+# Crear un diccionario con la ruta de la imagen para cada imagen_id
+image_path = {os.path.splitext(os.path.basename(x))[0]: x
+              for x in glob(os.path.join('/content/drive/MyDrive/Analitica III/SALUD/salud', '*', '*.jpg'))}
+
+# Agregar la ruta de la imagen como una nueva columna a la tabla
+skin_df_balanced['path'] = skin_df_balanced['image_id'].map(image_path.get)
+
+# Cargar la imagen en forma de un array numpy y agregarlo como una nueva columna a la tabla
+skin_df_balanced['image'] = skin_df_balanced['path'].map(lambda x: np.asarray(Image.open(x).resize((SIZE,SIZE))))
+
+skin_df_balanced
+
+#graficar
+n_samples = 5  
+
+# Plot
+fig, m_axs = plt.subplots(7, n_samples, figsize = (4*n_samples, 3*7))
+for n_axs, (type_name, type_rows) in zip(m_axs, 
+                                         skin_df_balanced.sort_values(['dx']).groupby('dx')):
+    n_axs[0].set_title(type_name)
+    for c_ax, (_, c_row) in zip(n_axs, type_rows.sample(n_samples, random_state=1234).iterrows()):
+        c_ax.imshow(c_row['image'])
+        c_ax.axis('off')
+        
+        
+#Convertir columna de imagenes a un array
+X = np.asarray(skin_df_balanced['image'].tolist())
+X = X/255. # Scale values to 0-1. You can also used standardscaler or other scaling methods.
+y = np.asarray(skin_df_balanced['label2'].tolist())
+#Y=skin_df_balanced['label'] #Assign label values to Y
+#Y_cat = to_categorical(Y, num_classes=7) #Convert to categorical as this is a multiclass classification problem
+
+X = np.asarray(X).astype(np.float32)
+y = np.asarray(y).astype(np.float32)
+
+X
+
+y
+
+# Dividir la tabla en características (X) y etiquetas (y)
+#X = skin_df_balanced['image']
+#y = skin_df_balanced['image']
+
+# Dividir los datos en un conjunto de entrenamiento y uno de prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+print(X_test.shape,y_test.shape)
+
+
+######  normalizar variables ######
+X_train /=255 ### escalaro para que quede entre 0 y 1
+X_test /=255
+
+
+X_train
